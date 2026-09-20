@@ -1,36 +1,58 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# MedCare AI — Frontend
 
-## Getting Started
+Next.js (App Router) + TypeScript + Tailwind CSS + lucide-react.
 
-First, run the development server:
+## Run locally
 
 ```bash
+cd frontend
+npm install
+cp .env.example .env.local
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+App: http://localhost:3000
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Environment
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+| Variable | Purpose |
+| --- | --- |
+| `NEXT_PUBLIC_API_URL` | Base URL of the FastAPI backend |
 
-## Learn More
+`NEXT_PUBLIC_*` values are baked in at build time, so changing the API URL on a
+hosted deploy requires a rebuild.
 
-To learn more about Next.js, take a look at the following resources:
+## Structure
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+```
+app/
+  layout.tsx        root layout + metadata
+  page.tsx          renders the landing page
+  globals.css       Tailwind layers, theme base, component classes
+components/
+  LandingPage.tsx   section order: Navbar, Hero, Features, Consultation, CTA, Footer
+  Navbar.tsx        sticky nav, mobile sheet, scroll-to-consultation helper
+  Hero.tsx          headline, ambient gradient, primary CTAs
+  Features.tsx      feature grid, RAG explanation, how-it-works steps
+  Consultation.tsx  orchestrates quiz -> chat -> result
+  ConsultationQuiz.tsx  five-step assessment (symptoms, duration, severity, other, notes)
+  Chatbot.tsx       chat UI: bubbles, typing indicator, suggested answers, composer
+  ResultDashboard.tsx   risk level, reported data, guidance, next steps, sources
+  EmergencyAlert.tsx    prominent urgent-attention card
+  SelectableCard.tsx    answer card with cyan border + glow + check icon
+  LoadingState.tsx / ErrorState.tsx   async states
+lib/
+  api.ts            typed client, status-code-aware error messages
+  constants.ts      quiz options and risk-level styling
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Design identity
 
-## Deploy on Vercel
+Background `#07111f`, surface `#0d1b2a`, accent `#22d3ee`. Defined in
+`tailwind.config.js` as `base`, `surface`, and `accent`.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Notes
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- Every button performs a real action — nothing is decorative.
+- The composer uses a 16px base font size on mobile so iOS does not zoom on focus.
+- Motion is disabled under `prefers-reduced-motion`.
