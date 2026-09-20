@@ -11,6 +11,7 @@ import {
   Sparkles,
   Stethoscope,
 } from "lucide-react";
+import Reveal from "./Reveal";
 
 const FEATURES = [
   {
@@ -69,7 +70,7 @@ export default function Features() {
       {/* Features */}
       <section id="features" className="scroll-mt-24 py-16 sm:py-20 lg:py-24">
         <div className="container-page">
-          <div className="max-w-2xl">
+          <Reveal className="max-w-2xl">
             <p className="label-muted">What MedCare AI does</p>
             <h2 className="section-title mt-2">
               Guidance that adapts to you, not a form that asks once
@@ -79,20 +80,19 @@ export default function Features() {
               what you are experiencing and understand what to do next. It does not
               diagnose, and it does not replace a healthcare professional.
             </p>
-          </div>
+          </Reveal>
 
           <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {FEATURES.map(({ icon: Icon, title, body }) => (
-              <div
-                key={title}
-                className="card-surface group p-5 transition-colors duration-200 hover:border-accent/35"
-              >
-                <span className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-accent/30 bg-accent/10 text-accent">
-                  <Icon className="h-[18px] w-[18px]" />
-                </span>
-                <h3 className="mt-4 text-base font-semibold text-white">{title}</h3>
-                <p className="mt-2 text-sm leading-relaxed text-slate-400">{body}</p>
-              </div>
+            {FEATURES.map(({ icon: Icon, title, body }, index) => (
+              <Reveal key={title} delay={index * 70}>
+                <div className="card-surface lift group h-full p-5 transition-colors duration-200 hover:border-accent/35">
+                  <span className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-accent/30 bg-accent/10 text-accent transition-transform duration-200 group-hover:scale-105">
+                    <Icon className="h-[18px] w-[18px]" />
+                  </span>
+                  <h3 className="mt-4 text-base font-semibold text-white">{title}</h3>
+                  <p className="mt-2 text-sm leading-relaxed text-slate-400">{body}</p>
+                </div>
+              </Reveal>
             ))}
           </div>
         </div>
@@ -101,7 +101,7 @@ export default function Features() {
       {/* RAG technology */}
       <section id="rag" className="scroll-mt-24 py-16 sm:py-20 lg:py-24">
         <div className="container-page">
-          <div className="glass overflow-hidden p-6 sm:p-8 lg:p-10">
+          <Reveal className="glass overflow-hidden p-6 sm:p-8 lg:p-10">
             <div className="grid gap-8 lg:grid-cols-[1.05fr_0.95fr] lg:gap-12">
               <div>
                 <p className="label-muted">How the guidance is grounded</p>
@@ -139,45 +139,46 @@ export default function Features() {
                     body: "Guidance is written against those passages, and the passages are cited.",
                   },
                 ].map(({ step, body }, index) => (
-                  <div
-                    key={step}
-                    className="flex items-start gap-4 rounded-xl border border-white/10 bg-white/[0.02] p-4"
-                  >
-                    <span className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-accent/15 text-xs font-semibold text-accent">
-                      {index + 1}
-                    </span>
-                    <div className="min-w-0">
-                      <p className="text-sm font-semibold text-white">{step}</p>
-                      <p className="mt-1 text-xs leading-relaxed text-slate-400 sm:text-sm">
-                        {body}
-                      </p>
+                  <Reveal key={step} from="left" delay={index * 110}>
+                    <div className="flex items-start gap-4 rounded-xl border border-white/10 bg-white/[0.02] p-4 transition-colors duration-200 hover:border-accent/30">
+                      <span className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-accent/15 text-xs font-semibold text-accent">
+                        {index + 1}
+                      </span>
+                      <div className="min-w-0">
+                        <p className="text-sm font-semibold text-white">{step}</p>
+                        <p className="mt-1 text-xs leading-relaxed text-slate-400 sm:text-sm">
+                          {body}
+                        </p>
+                      </div>
                     </div>
-                  </div>
+                  </Reveal>
                 ))}
               </div>
             </div>
-          </div>
+          </Reveal>
         </div>
       </section>
 
       {/* How it works */}
       <section id="how" className="scroll-mt-24 py-16 sm:py-20 lg:py-24">
         <div className="container-page">
-          <div className="max-w-2xl">
+          <Reveal className="max-w-2xl">
             <p className="label-muted">The experience</p>
             <h2 className="section-title mt-2">Three steps, about two minutes</h2>
-          </div>
+          </Reveal>
 
           <div className="mt-10 grid gap-4 md:grid-cols-3">
             {STEPS.map(({ icon: Icon, title, body }, index) => (
-              <div key={title} className="card-surface relative p-5">
-                <span className="label-muted">Step {index + 1}</span>
-                <span className="mt-3 inline-flex h-10 w-10 items-center justify-center rounded-xl border border-accent/30 bg-accent/10 text-accent">
-                  <Icon className="h-[18px] w-[18px]" />
-                </span>
-                <h3 className="mt-4 text-base font-semibold text-white">{title}</h3>
-                <p className="mt-2 text-sm leading-relaxed text-slate-400">{body}</p>
-              </div>
+              <Reveal key={title} delay={index * 90}>
+                <div className="card-surface lift relative h-full p-5">
+                  <span className="label-muted">Step {index + 1}</span>
+                  <span className="mt-3 inline-flex h-10 w-10 items-center justify-center rounded-xl border border-accent/30 bg-accent/10 text-accent">
+                    <Icon className="h-[18px] w-[18px]" />
+                  </span>
+                  <h3 className="mt-4 text-base font-semibold text-white">{title}</h3>
+                  <p className="mt-2 text-sm leading-relaxed text-slate-400">{body}</p>
+                </div>
+              </Reveal>
             ))}
           </div>
         </div>
