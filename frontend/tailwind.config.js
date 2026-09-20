@@ -3,6 +3,7 @@ module.exports = {
   content: [
     "./app/**/*.{js,ts,jsx,tsx,mdx}",
     "./components/**/*.{js,ts,jsx,tsx,mdx}",
+    "./lib/**/*.{js,ts,jsx,tsx}",
   ],
   theme: {
     extend: {
@@ -41,12 +42,31 @@ module.exports = {
           "0%, 80%, 100%": { transform: "translateY(0)", opacity: "0.4" },
           "40%": { transform: "translateY(-4px)", opacity: "1" },
         },
+        // Slow ambient drift for the hero glow blobs.
+        pulseSlow: {
+          "0%, 100%": { opacity: "0.85", transform: "scale(1)" },
+          "50%": { opacity: "1", transform: "scale(1.06)" },
+        },
+        // Blinking caret for the typed headline.
+        caret: {
+          "0%, 45%": { opacity: "1" },
+          "50%, 95%": { opacity: "0" },
+          "100%": { opacity: "1" },
+        },
+        // Diagonal sheen that sweeps across primary buttons.
+        shine: {
+          "0%": { transform: "translateX(-120%) skewX(-12deg)" },
+          "100%": { transform: "translateX(240%) skewX(-12deg)" },
+        },
       },
       animation: {
         "fade-up": "fade-up 0.45s ease-out both",
         "fade-in": "fade-in 0.4s ease-out both",
         "pulse-dot": "pulseDot 2s ease-in-out infinite",
         "bounce-dot": "bounceDot 1.2s ease-in-out infinite",
+        "pulse-slow": "pulseSlow 7s ease-in-out infinite",
+        caret: "caret 1.05s step-end infinite",
+        shine: "shine 2.6s ease-in-out infinite",
       },
     },
   },

@@ -34,8 +34,8 @@ body {
   }
 
   .btn-primary {
-    @apply inline-flex items-center justify-center gap-2 rounded-xl bg-accent px-5 py-3
-      text-sm font-semibold text-[#04222b] transition
+    @apply relative inline-flex items-center justify-center gap-2 overflow-hidden rounded-xl
+      bg-accent px-5 py-3 text-sm font-semibold text-[#04222b] transition
       hover:bg-accent-soft focus:outline-none focus-visible:ring-2
       focus-visible:ring-accent focus-visible:ring-offset-2
       focus-visible:ring-offset-[#07111f] disabled:cursor-not-allowed
@@ -58,6 +58,36 @@ body {
   .section-title {
     @apply text-2xl font-semibold leading-tight text-white sm:text-3xl lg:text-4xl;
   }
+
+  /* Card that lifts on hover — pairs with the Reveal wrapper. */
+  .lift {
+    @apply transition-transform duration-300 ease-out;
+  }
+  .lift:hover {
+    transform: translateY(-3px);
+  }
+
+  /*
+    Sheen sweep for primary buttons. The pseudo-element carries the highlight,
+    so the button itself stays a single stacking context and the text is never
+    covered.
+  */
+  .shine::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    width: 45%;
+    background: linear-gradient(
+      90deg,
+      transparent,
+      rgba(255, 255, 255, 0.55),
+      transparent
+    );
+    animation: shine 2.6s ease-in-out infinite;
+    pointer-events: none;
+  }
 }
 
 /* Respect reduced-motion preferences across all animated elements. */
@@ -68,6 +98,15 @@ body {
     animation-duration: 0.001ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.001ms !important;
+  }
+
+  /*
+    Reveal sets inline opacity/transform, so it needs an explicit reset here —
+    the blanket rule above cannot reach inline styles.
+  */
+  [style*="translate3d"] {
+    opacity: 1 !important;
+    transform: none !important;
   }
 }
 
