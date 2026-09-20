@@ -1,0 +1,17 @@
+shell: bash
+
+# Only the canonical v3 configs may exist. A leftover Tailwind v4 PostCSS
+# config (.mjs) silently wins over the v3 one (.js) and produces zero CSS.
+steps:
+  - name: Fail if duplicate config files exist
+    working-directory: frontend
+    run: |
+      fail=0
+      for f in postcss.config.mjs postcss.config.cjs postcss.config.ts \
+               next.config.ts next.config.mjs; do
+        if [ -e "$f" ]; then
+          echo "::error file=frontend/$f::Conflicting config present — remove it so the v3 config is used"
+          fail=1
+        fi
+      done
+      exit $fail
