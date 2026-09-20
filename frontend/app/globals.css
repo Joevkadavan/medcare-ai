@@ -1,26 +1,94 @@
-@import "tailwindcss";
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+/* Baseline: dark healthcare-tech surface. */
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+html {
+  scroll-behavior: smooth;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background-color: #07111f;
+  color: #e2e8f0;
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Never allow horizontal scroll from an oversized child. */
+* {
+  min-width: 0;
+}
+
+@layer components {
+  .container-page {
+    @apply mx-auto w-full max-w-6xl px-4 sm:px-6 lg:px-8;
+  }
+
+  .glass {
+    @apply rounded-2xl border border-white/10 bg-white/[0.03] backdrop-blur-sm;
+  }
+
+  .card-surface {
+    @apply rounded-2xl border border-white/10 bg-[#0d1b2a]/80 shadow-card;
+  }
+
+  .btn-primary {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl bg-accent px-5 py-3
+      text-sm font-semibold text-[#04222b] transition
+      hover:bg-accent-soft focus:outline-none focus-visible:ring-2
+      focus-visible:ring-accent focus-visible:ring-offset-2
+      focus-visible:ring-offset-[#07111f] disabled:cursor-not-allowed
+      disabled:opacity-50 sm:text-base;
+  }
+
+  .btn-ghost {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl border border-white/15
+      px-5 py-3 text-sm font-semibold text-slate-200 transition
+      hover:border-accent/50 hover:text-white focus:outline-none
+      focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2
+      focus-visible:ring-offset-[#07111f] disabled:cursor-not-allowed disabled:opacity-50
+      sm:text-base;
+  }
+
+  .label-muted {
+    @apply text-xs font-medium uppercase tracking-[0.18em] text-slate-400;
+  }
+
+  .section-title {
+    @apply text-2xl font-semibold leading-tight text-white sm:text-3xl lg:text-4xl;
+  }
+}
+
+/* Respect reduced-motion preferences across all animated elements. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}
+
+/* Scrollbar, kept subtle to match the theme. */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-track {
+  background: #07111f;
+}
+::-webkit-scrollbar-thumb {
+  background: #17334a;
+  border-radius: 999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #1e4a68;
+}
+
+/* Chat scroll region */
+.chat-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: #17334a transparent;
 }

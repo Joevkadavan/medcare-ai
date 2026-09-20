@@ -1,0 +1,187 @@
+"use client";
+
+import {
+  Activity,
+  Brain,
+  Database,
+  HeartPulse,
+  Lock,
+  ShieldAlert,
+  Siren,
+  Sparkles,
+  Stethoscope,
+} from "lucide-react";
+
+const FEATURES = [
+  {
+    icon: Stethoscope,
+    title: "Adaptive symptom assessment",
+    body: "A structured consultation that narrows with your answers, rather than a single open text box.",
+  },
+  {
+    icon: Brain,
+    title: "Follow-up that adapts",
+    body: "The assistant asks relevant follow-ups based on what you have already reported, and stops when it has enough.",
+  },
+  {
+    icon: Siren,
+    title: "Emergency warning detection",
+    body: "Red-flag symptoms are detected and surfaced immediately, before any general guidance is offered.",
+  },
+  {
+    icon: Database,
+    title: "Retrieval-backed guidance",
+    body: "Guidance is grounded in a curated corpus of public health material, with the sources shown alongside the result.",
+  },
+  {
+    icon: Lock,
+    title: "Server-side AI",
+    body: "Model calls happen server-side only. No API key is ever exposed to the browser.",
+  },
+  {
+    icon: Activity,
+    title: "Honest about its limits",
+    body: "The platform reports whether it is running on live or fallback logic, and whether retrieval is active.",
+  },
+];
+
+const STEPS = [
+  {
+    icon: HeartPulse,
+    title: "Describe what you are experiencing",
+    body: "Choose the symptoms that apply, how long they have lasted, and how severe they feel.",
+  },
+  {
+    icon: Sparkles,
+    title: "Answer a few follow-up questions",
+    body: "A short adaptive conversation fills in the detail that matters for useful guidance.",
+  },
+  {
+    icon: ShieldAlert,
+    title: "Review your consultation summary",
+    body: "A risk indicator, a plain-language summary, next steps, and clear guidance on when to seek care.",
+  },
+];
+
+export default function Features() {
+  return (
+    <>
+      {/* Features */}
+      <section id="features" className="scroll-mt-24 py-16 sm:py-20 lg:py-24">
+        <div className="container-page">
+          <div className="max-w-2xl">
+            <p className="label-muted">What MedCare AI does</p>
+            <h2 className="section-title mt-2">
+              Guidance that adapts to you, not a form that asks once
+            </h2>
+            <p className="mt-4 text-sm leading-relaxed text-slate-400 sm:text-base">
+              MedCare AI is an AI-assisted guidance platform. It helps you organise
+              what you are experiencing and understand what to do next. It does not
+              diagnose, and it does not replace a healthcare professional.
+            </p>
+          </div>
+
+          <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {FEATURES.map(({ icon: Icon, title, body }) => (
+              <div
+                key={title}
+                className="card-surface group p-5 transition-colors duration-200 hover:border-accent/35"
+              >
+                <span className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-accent/30 bg-accent/10 text-accent">
+                  <Icon className="h-[18px] w-[18px]" />
+                </span>
+                <h3 className="mt-4 text-base font-semibold text-white">{title}</h3>
+                <p className="mt-2 text-sm leading-relaxed text-slate-400">{body}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* RAG technology */}
+      <section id="rag" className="scroll-mt-24 py-16 sm:py-20 lg:py-24">
+        <div className="container-page">
+          <div className="glass overflow-hidden p-6 sm:p-8 lg:p-10">
+            <div className="grid gap-8 lg:grid-cols-[1.05fr_0.95fr] lg:gap-12">
+              <div>
+                <p className="label-muted">How the guidance is grounded</p>
+                <h2 className="section-title mt-2">
+                  Retrieval-augmented generation, honestly labelled
+                </h2>
+                <p className="mt-4 text-sm leading-relaxed text-slate-400 sm:text-base">
+                  Rather than relying on a model&apos;s memory, MedCare AI retrieves
+                  relevant passages from a curated corpus of public health guidance and
+                  uses them to inform the answer. The passages are returned to you as
+                  sources, so the reasoning is visible rather than opaque.
+                </p>
+                <p className="mt-4 text-sm leading-relaxed text-slate-400 sm:text-base">
+                  The platform distinguishes between two states, and tells you which one
+                  is running: <span className="text-slate-200">RAG READY</span> means the
+                  retrieval pipeline is wired end to end over a local corpus, with
+                  keyword-and-vector hybrid scoring. <span className="text-slate-200">RAG
+                  ACTIVE</span> means the same pipeline is running against a real
+                  embedding index over ingested documents. This build reports RAG READY.
+                </p>
+              </div>
+
+              <div className="flex flex-col gap-3">
+                {[
+                  {
+                    step: "Retrieve",
+                    body: "Your reported symptoms are turned into a retrieval query.",
+                  },
+                  {
+                    step: "Ground",
+                    body: "The closest passages from the corpus are selected and scored.",
+                  },
+                  {
+                    step: "Generate",
+                    body: "Guidance is written against those passages, and the passages are cited.",
+                  },
+                ].map(({ step, body }, index) => (
+                  <div
+                    key={step}
+                    className="flex items-start gap-4 rounded-xl border border-white/10 bg-white/[0.02] p-4"
+                  >
+                    <span className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-accent/15 text-xs font-semibold text-accent">
+                      {index + 1}
+                    </span>
+                    <div className="min-w-0">
+                      <p className="text-sm font-semibold text-white">{step}</p>
+                      <p className="mt-1 text-xs leading-relaxed text-slate-400 sm:text-sm">
+                        {body}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* How it works */}
+      <section id="how" className="scroll-mt-24 py-16 sm:py-20 lg:py-24">
+        <div className="container-page">
+          <div className="max-w-2xl">
+            <p className="label-muted">The experience</p>
+            <h2 className="section-title mt-2">Three steps, about two minutes</h2>
+          </div>
+
+          <div className="mt-10 grid gap-4 md:grid-cols-3">
+            {STEPS.map(({ icon: Icon, title, body }, index) => (
+              <div key={title} className="card-surface relative p-5">
+                <span className="label-muted">Step {index + 1}</span>
+                <span className="mt-3 inline-flex h-10 w-10 items-center justify-center rounded-xl border border-accent/30 bg-accent/10 text-accent">
+                  <Icon className="h-[18px] w-[18px]" />
+                </span>
+                <h3 className="mt-4 text-base font-semibold text-white">{title}</h3>
+                <p className="mt-2 text-sm leading-relaxed text-slate-400">{body}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+    </>
+  );
+}
