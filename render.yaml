@@ -1,0 +1,24 @@
+services:
+  - type: web
+    name: medcare-ai-backend
+    runtime: python
+    plan: free
+    rootDir: backend
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
+    envVars:
+      - key: FRONTEND_URL
+        sync: false
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: OPENAI_MODEL
+        value: gpt-4o-mini
+      - key: MOCK_AI_ONLY
+        value: "false"
+      - key: RAG_ENABLED
+        value: "true"
+      - key: RAG_TOP_K
+        value: "4"
+      - key: PYTHON_VERSION
+        value: "3.11.9"
