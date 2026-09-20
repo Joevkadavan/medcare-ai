@@ -1,0 +1,9 @@
+*.pyc
+.env
+.env.local
+.next/
+.venv/
+__pycache__/
+node_modules/
+venv/
+node_modules/
