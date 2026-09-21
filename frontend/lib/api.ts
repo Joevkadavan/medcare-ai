@@ -46,15 +46,29 @@ function messageForStatus(status: number): string {
   }
 }
 
-function extractDetail(payload: unknown): string | null {
-  if (!payload || typeof payload !== "object") return null;
-  const detail = (payload as { detail?: unknown }).detail;
-  if (typeof detail === "string") return detail;
-  if (Array.isArray(detail) && detail.length > 0) {
-    const first = detail[0] as { msg?: string };
-    if (first && typeof first.msg === "string") return first.msg;
-  }
-  return null;
+function validResponse(path: string, value: unknown): boolean {
+  if (!value || typeof value !== "object") return false;
+  const p = value as Record<string, unknown>;
+  const str = (v: unknown): v is string => typeof v === "string" && v.length <= 100000;
+  const strings = (v: unknown) => Array.isArray(v) && v.length <= 100 && v.every(str);
+  if (path === "/reset") return p.ok === true && str(p.message);
+  const mode = p.ai_mode === "mock" || p.ai_mode === "live";
+  const rag = ["RAG_DISABLED", "RAG_READY", "RAG_ACTIVE"].includes(String(p.rag_status));
+  if (path === "/health") return p.status === "ok" && str(p.service) && mode && rag;
+  if (!mode || !["LOW", "MODERATE", "HIGH", "EMERGENCY"].includes(String(p.risk_level)) ||
+      typeof p.emergency !== "boolean" || (p.emergency !== (p.risk_level === "EMERGENCY")) ||
+      !str(p.session_id) || !str(p.session_token) || !Array.isArray(p.sources)) return false;
+  if (!p.sources.every((source: unknown) => {
+    if (!source || typeof source !== "object") return false;
+    const v = source as Record<string, unknown>;
+    return str(v.id) && str(v.section) && str(v.verified_on) && typeof v.score === "number" && Number.isFinite(v.score) && str(v.title) && str(v.organisation) && str(v.snippet) && str(v.url) && /^https:\/\//.test(v.url);
+  })) return false;
+  if (path === "/chat") return rag && ["follow_up", "retrieval", "abstain", "emergency"].includes(String(p.answer_mode)) && str(p.message) && p.message.trim().length > 0 && strings(p.options) &&
+    typeof p.complete === "boolean" && typeof p.allow_free_text === "boolean";
+  const r = p.reported as Record<string, unknown> | undefined;
+  return !!r && typeof r === "object" && strings(r.symptoms) && strings(r.additional_symptoms) &&
+    str(r.duration) && str(r.severity) && str(r.notes) && str(p.summary) && str(p.disclaimer) &&
+    strings(p.next_steps) && strings(p.warning_signs) && strings(p.seek_care_when) && strings(p.follow_up_answers) && rag;
 }
 
 async function request<T>(
@@ -86,14 +100,10 @@ async function request<T>(
     }
 
     if (!response.ok) {
-      const detail = extractDetail(payload);
-      // eslint-disable-next-line no-console
-      console.error("[MedCare AI] API error", {
-        path,
-        status: response.status,
-        payload,
-      });
-      throw new ApiError(detail || messageForStatus(response.status), response.status, payload);
+      throw new ApiError(messageForStatus(response.status), response.status);
+    }
+    if (!validResponse(path, payload)) {
+      throw new ApiError("The service returned an invalid response. Please try again.", response.status);
     }
 
     return payload as T;
@@ -101,7 +111,7 @@ async function request<T>(
     if (error instanceof ApiError) throw error;
 
     // eslint-disable-next-line no-console
-    console.error("[MedCare AI] transport failure", { path, error });
+    console.error("[MedCare AI] transport failure", { path });
 
     if (error instanceof DOMException && error.name === "AbortError") {
       throw new ApiError(
@@ -132,6 +142,10 @@ export type RiskLevel = "LOW" | "MODERATE" | "HIGH" | "EMERGENCY";
 export type AiMode = "mock" | "live";
 
 export interface Source {
+  id: string;
+  section: string;
+  verified_on: string;
+  score: number;
   title: string;
   organisation: string;
   url: string;
@@ -147,11 +161,14 @@ export interface Assessment {
 }
 
 export interface ConversationTurn {
-  role: "user" | "assistant" | "system";
+  role: "user" | "assistant";
   content: string;
 }
 
 export interface ConsultationResult {
+  session_id: string;
+  session_token: string;
+  follow_up_answers: string[];
   risk_level: RiskLevel;
   emergency: boolean;
   summary: string;
@@ -161,13 +178,16 @@ export interface ConsultationResult {
   seek_care_when: string[];
   sources: Source[];
   ai_mode: AiMode;
-  rag_status: "RAG READY" | "RAG ACTIVE";
+  rag_status: "RAG_DISABLED" | "RAG_READY" | "RAG_ACTIVE";
   disclaimer: string;
 }
 
 export interface ChatResult {
+  rag_status: "RAG_DISABLED" | "RAG_READY" | "RAG_ACTIVE";
+  answer_mode: "follow_up" | "retrieval" | "abstain" | "emergency";
+  session_id: string;
+  session_token: string;
   message: string;
-  next_question: string | null;
   options: string[];
   allow_free_text: boolean;
   risk_level: RiskLevel;
@@ -181,7 +201,7 @@ export interface HealthResult {
   status: string;
   service: string;
   ai_mode: AiMode;
-  rag_status: "RAG READY" | "RAG ACTIVE";
+  rag_status: "RAG_DISABLED" | "RAG_READY" | "RAG_ACTIVE";
 }
 
 /* ------------------------------ endpoints ----------------------------- */
@@ -190,37 +210,30 @@ export function health() {
   return request<HealthResult>("/health", { method: "GET", timeoutMs: 15000 });
 }
 
-export function consultation(
-  assessment: Assessment,
-  conversation: ConversationTurn[],
-  sessionId: string,
-) {
-  return request<ConsultationResult>("/consultation", {
-    method: "POST",
-    body: JSON.stringify({ assessment, conversation, session_id: sessionId }),
+// Credentials live only in memory and are never placed in URLs or persistent storage.
+const sessions = new Map<string, { session_id: string; session_token: string }>();
+async function sessionRequest<T extends ChatResult | ConsultationResult>(path: string, key: string, body: object) {
+  const result = await request<T>(path, {
+    method: "POST", body: JSON.stringify({ ...body, ...sessions.get(key) }),
   });
+  sessions.set(key, { session_id: result.session_id, session_token: result.session_token });
+  return result;
+}
+export function consultation(assessment: Assessment, conversation: ConversationTurn[], sessionId: string) {
+  return sessionRequest<ConsultationResult>("/consultation", sessionId, { assessment, conversation });
+}
+export function chat(message: string, conversation: ConversationTurn[], assessment: Assessment, sessionId: string, intent: "consultation" | "question" = "consultation") {
+  return sessionRequest<ChatResult>("/chat", sessionId, { message, conversation, assessment, intent });
+}
+export async function reset(sessionId: string) {
+  const credentials = sessions.get(sessionId);
+  if (!credentials) return;
+  await request<{ ok: boolean; message: string }>("/reset", {
+    method: "POST", body: JSON.stringify(credentials),
+  });
+  sessions.delete(sessionId);
 }
 
-export function chat(
-  message: string,
-  conversation: ConversationTurn[],
-  assessment: Assessment,
-  sessionId: string,
-) {
-  return request<ChatResult>("/chat", {
-    method: "POST",
-    body: JSON.stringify({
-      message,
-      conversation,
-      assessment,
-      session_id: sessionId,
-    }),
-  });
-}
-
-export function reset(sessionId: string) {
-  return request<{ ok: boolean; message: string }>("/reset", {
-    method: "POST",
-    body: JSON.stringify({ session_id: sessionId }),
-  });
+export function askQuestion(message: string, conversation: ConversationTurn[], sessionId: string) {
+  return sessionRequest<ChatResult>("/chat", sessionId, { message, conversation, intent: "question" });
 }

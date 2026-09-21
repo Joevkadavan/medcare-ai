@@ -2,13 +2,15 @@
 
 import { useEffect, useRef, useState } from "react";
 import { Send, Sparkles } from "lucide-react";
-import type { AiMode } from "@/lib/api";
+import SourceList from "./SourceList";
+import type { Source, AiMode } from "@/lib/api";
 
 export interface ChatMessage {
   id: string;
   role: "user" | "assistant";
   content: string;
   at: Date;
+  sources?: Source[];
 }
 
 interface ChatbotProps {
@@ -54,7 +56,8 @@ export default function Chatbot({
 
   // Keep the latest message in view as the conversation grows.
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ block: "end", behavior: "smooth" });
+    const container = bottomRef.current?.parentElement;
+    if (container) container.scrollTop = container.scrollHeight;
   }, [messages, pending]);
 
   const submit = () => {
@@ -91,7 +94,7 @@ export default function Chatbot({
           )}
           <span className="inline-flex items-center gap-1.5 text-xs font-medium text-emerald-300">
             <span className="h-1.5 w-1.5 animate-pulse-dot rounded-full bg-emerald-400" />
-            Online
+            {pending ? "Responding" : "Consultation"}
           </span>
         </div>
       </div>
@@ -99,7 +102,8 @@ export default function Chatbot({
       {/* Messages */}
       <div
         className="chat-scroll flex-1 space-y-3.5 overflow-y-auto px-4 py-5 sm:px-5"
-        style={{ maxHeight: "min(58vh, 30rem)" }}
+        role="log" aria-label="Conversation" aria-live="polite"
+        style={{ maxHeight: "min(50dvh, 30rem)" }}
       >
         {messages.map((message) => (
           <div
@@ -119,6 +123,7 @@ export default function Chatbot({
                 ].join(" ")}
               >
                 {message.content}
+                <SourceList sources={message.sources || []} />
               </div>
               <p
                 className={[
@@ -182,10 +187,11 @@ export default function Chatbot({
               }
             }}
             rows={1}
+            maxLength={2000}
             disabled={pending || inputDisabled}
-            placeholder={inputDisabled ? "Consultation complete" : "Type your response..."}
+            placeholder={inputDisabled ? "View your guidance below" : "Type your response..."}
             aria-label="Type your response"
-            className="max-h-32 min-h-[2.75rem] flex-1 resize-none rounded-xl border border-white/12 bg-[#07111f] px-3.5 py-3 text-base leading-snug text-slate-100 placeholder:text-slate-500 transition focus:border-accent/60 focus:outline-none focus-visible:ring-1 focus-visible:ring-accent disabled:opacity-60 sm:text-sm"
+            className="w-full max-h-32 min-h-[2.75rem] flex-1 resize-none rounded-xl border border-white/12 bg-[#07111f] px-3.5 py-3 text-base leading-snug text-slate-100 placeholder:text-slate-500 transition focus:border-accent/60 focus:outline-none focus-visible:ring-1 focus-visible:ring-accent disabled:opacity-60 sm:text-sm"
           />
 
           <button

@@ -1,56 +1,53 @@
-"""Session storage.
-
-Deliberately in-memory for the first working version: consultation state should
-not require a database to try the product. The interface is narrow on purpose —
-swap the dict for SQLite/Postgres by reimplementing these five functions and
-nothing else in the codebase changes.
+"""Bounded, expiring demo storage. Tokens are bearer secrets, not user authentication.
+Single-process only. Do not use this store for production health records.
 """
-
-from __future__ import annotations
-
+import secrets
 import time
-import uuid
-from typing import Any
+from threading import RLock
+from fastapi import HTTPException
 
-# session_id -> {"assessment": dict, "conversation": list, "updated": float}
-_SESSIONS: dict[str, dict[str, Any]] = {}
-SESSION_TTL_SECONDS = 60 * 60 * 6  # six hours
+_SESSIONS = {}
+_LOCK = RLock()
+SESSION_TTL_SECONDS = 1800
+MAX_SESSIONS = 500
 
+def _prune():
+    cutoff = time.monotonic() - SESSION_TTL_SECONDS
+    for sid in [sid for sid, data in _SESSIONS.items() if data["updated"] < cutoff]:
+        del _SESSIONS[sid]
 
-def _prune() -> None:
-    cutoff = time.time() - SESSION_TTL_SECONDS
-    for session_id in [s for s, data in _SESSIONS.items() if data.get("updated", 0) < cutoff]:
+def resolve(session_id=None, session_token=None):
+    with _LOCK:
+        _prune()
+        if session_id:
+            data = _SESSIONS.get(session_id)
+            if not data or not session_token or not secrets.compare_digest(data["token"], session_token):
+                raise HTTPException(401, "Session expired or invalid")
+            data["updated"] = time.monotonic()
+            return session_id, data["token"]
+        if session_token:
+            raise HTTPException(401, "Session invalid")
+        if len(_SESSIONS) >= MAX_SESSIONS:
+            raise HTTPException(503, "Demo session capacity reached")
+        sid, token = secrets.token_hex(16), secrets.token_urlsafe(32)
+        _SESSIONS[sid] = {"token": token, "updated": time.monotonic(), "emergency": False}
+        return sid, token
+
+def latch(session_id, emergency):
+    with _LOCK:
+        data = _SESSIONS[session_id]
+        data["emergency"] = data["emergency"] or emergency
+        return data["emergency"]
+
+def clear(session_id, session_token=None):
+    with _LOCK:
+        _prune()
+        if session_id not in _SESSIONS:
+            return
+        resolve(session_id, session_token)
         _SESSIONS.pop(session_id, None)
 
-
-def new_session() -> str:
-    _prune()
-    session_id = uuid.uuid4().hex
-    _SESSIONS[session_id] = {"assessment": {}, "conversation": [], "updated": time.time()}
-    return session_id
-
-
-def get(session_id: str | None) -> dict[str, Any] | None:
-    if not session_id:
-        return None
-    return _SESSIONS.get(session_id)
-
-
-def save(session_id: str, assessment: dict | None = None, conversation: list | None = None) -> None:
-    data = _SESSIONS.setdefault(
-        session_id, {"assessment": {}, "conversation": [], "updated": time.time()}
-    )
-    if assessment:
-        data["assessment"] = assessment
-    if conversation is not None:
-        data["conversation"] = conversation
-    data["updated"] = time.time()
-
-
-def clear(session_id: str | None) -> None:
-    if session_id:
-        _SESSIONS.pop(session_id, None)
-
-
-def count() -> int:
-    return len(_SESSIONS)
+def count():
+    with _LOCK:
+        _prune()
+        return len(_SESSIONS)

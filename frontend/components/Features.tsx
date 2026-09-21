@@ -12,6 +12,7 @@ import {
   Stethoscope,
 } from "lucide-react";
 import Reveal from "./Reveal";
+import KnowledgeQA from "./KnowledgeQA";
 
 const FEATURES = [
   {
@@ -31,8 +32,8 @@ const FEATURES = [
   },
   {
     icon: Database,
-    title: "Retrieval-backed guidance",
-    body: "Guidance is grounded in a curated corpus of public health material, with the sources shown alongside the result.",
+    title: "Source-linked questions",
+    body: "Questions retrieve reviewed NHS passages and show which sources support the answer. Uncovered questions receive no invented answer.",
   },
   {
     icon: Lock,
@@ -109,18 +110,14 @@ export default function Features() {
                   Retrieval-augmented generation, honestly labelled
                 </h2>
                 <p className="mt-4 text-sm leading-relaxed text-slate-400 sm:text-base">
-                  Rather than relying on a model&apos;s memory, MedCare AI retrieves
-                  relevant passages from a curated corpus of public health guidance and
-                  uses them to inform the answer. The passages are returned to you as
-                  sources, so the reasoning is visible rather than opaque.
+                  Ask a general health question and MedCare AI retrieves relevant
+                  passages from a small, reviewed NHS knowledge collection. Each answer
+                  cites the passages it uses. It works without an API key.
                 </p>
                 <p className="mt-4 text-sm leading-relaxed text-slate-400 sm:text-base">
-                  The platform distinguishes between two states, and tells you which one
-                  is running: <span className="text-slate-200">RAG READY</span> means the
-                  retrieval pipeline is wired end to end over a local corpus, with
-                  keyword-and-vector hybrid scoring. <span className="text-slate-200">RAG
-                  ACTIVE</span> means the same pipeline is running against a real
-                  embedding index over ingested documents. This build reports RAG READY.
+                  Retrieval is disabled when switched off, ready when enabled,
+                  and active for answers that actually retrieve supporting passages.
+                  This is a limited educational system, not a diagnostic service.
                 </p>
               </div>
 
@@ -128,15 +125,15 @@ export default function Features() {
                 {[
                   {
                     step: "Retrieve",
-                    body: "Your reported symptoms are turned into a retrieval query.",
+                    body: "Your question is matched against a versioned set of reviewed passages.",
                   },
                   {
                     step: "Ground",
-                    body: "The closest passages from the corpus are selected and scored.",
+                    body: "BM25 ranks relevant passages; unrelated topics are declined.",
                   },
                   {
                     step: "Generate",
-                    body: "Guidance is written against those passages, and the passages are cited.",
+                    body: "The answer is composed from the retrieved passages with numbered source links.",
                   },
                 ].map(({ step, body }, index) => (
                   <Reveal key={step} from="left" delay={index * 110}>
@@ -156,6 +153,7 @@ export default function Features() {
               </div>
             </div>
           </Reveal>
+          <KnowledgeQA />
         </div>
       </section>
 

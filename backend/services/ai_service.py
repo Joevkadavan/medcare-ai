@@ -13,13 +13,15 @@ presented to the user as AI-generated when it is not.
 from __future__ import annotations
 
 import httpx
+import json
+from pydantic import BaseModel, ConfigDict, Field
 
 from config import get_settings
 
 SYSTEM_PROMPT = """You are MedCare AI, a careful health-guidance assistant.
 
 HARD RULES:
-- You NEVER diagnose. Never say "you have <condition>".
+- You NEVER diagnose, prescribe treatment, suggest prescription dosages, or claim certainty.
 - Say what symptoms CAN occur with, not what they mean.
 - Always remind the user, when giving guidance, that this is not a diagnosis.
 - If warning signs of a medical emergency are present, tell the user to seek
@@ -49,7 +51,7 @@ FOLLOW_UPS: list[dict] = [
         "options": ["Mild", "Moderate", "Severe", "The worst headache I have had"],
     },
     {
-        "trigger": ["cough", "sore throat", "cold"],
+        "trigger": ["cough"],
         "question": "Is your cough dry, or are you bringing anything up?",
         "options": ["Dry cough", "Bringing up phlegm", "Both", "Not sure"],
     },
@@ -116,7 +118,7 @@ def pick_mock_question(request) -> tuple[str, str | None, list[str]]:
         [
             request.message or "",
             assessment.get("notes") or "",
-            *[t.content for t in request.conversation],
+            *[t.content for t in request.conversation if t.role == "user"],
             *[s for s in (assessment.get("symptoms") or [])],
             *[s for s in (assessment.get("additional_symptoms") or [])],
         ]
@@ -134,7 +136,7 @@ def pick_mock_question(request) -> tuple[str, str | None, list[str]]:
         if entry["trigger"] and not any(t in haystack for t in entry["trigger"]):
             continue
         # Skip questions whose wording already appears in the transcript.
-        if entry["question"].split("?")[0].lower() in haystack:
+        if any(entry["question"] in t.content for t in request.conversation if t.role == "assistant"):
             continue
         return opening, entry["question"], entry["options"]
 
@@ -160,8 +162,8 @@ def mock_reply(request, analysis: dict) -> tuple[str, str | None, list[str], boo
     asked = _questions_asked(request)
     if asked >= MAX_FOLLOW_UPS:
         return (
-            "Thank you — that covers what I need for now. Your consultation summary is "
-            "ready, and you can keep asking me questions here at any time.",
+            analysis["summary"] + " " + " ".join(analysis["next_steps"][:2]) +
+            " MedCare AI provides informational guidance and does not replace professional medical advice.",
             None,
             [],
             True,
@@ -173,60 +175,41 @@ def mock_reply(request, analysis: dict) -> tuple[str, str | None, list[str], boo
     return f"{opening}\n\n{question}", question, options, False
 
 
+class QuestionChoice(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    question_id: int = Field(strict=True, ge=0, lt=len(FOLLOW_UPS))
+
+
 async def _call_openai(request, analysis: dict, retrieved: list[dict]) -> str:
     settings = get_settings()
-    messages = [{"role": "system", "content": SYSTEM_PROMPT}]
-
-    if retrieved:
-        context = "\n\n".join(
-            f"[{i + 1}] {doc['title']} — {doc['organisation']}\n{doc['snippet']}"
-            for i, doc in enumerate(retrieved)
-        )
-        messages.append(
-            {
-                "role": "system",
-                "content": (
-                    "Reference material retrieved for this consultation. Use it only to "
-                    "inform general guidance. Do not quote it as a diagnosis.\n\n"
-                    + context
-                ),
-            }
-        )
-
-    messages.append(
-        {"role": "system", "content": "Consultation context. " + _context_blurb(analysis.get("assessment", {}))}
-    )
-    messages.append({"role": "user", "content": _transcript(request) or "(no message)"})
-
-    async with httpx.AsyncClient(timeout=30.0) as client:
-        response = await client.post(
-            "https://api.openai.com/v1/chat/completions",
-            headers={
-                "Authorization": f"Bearer {settings.openai_api_key}",
-                "Content-Type": "application/json",
-            },
-            json={"model": settings.openai_model, "messages": messages, "temperature": 0.3, "max_tokens": 400},
-        )
+    # Provider selects vetted wording, never writes medical guidance for the UI.
+    messages = [
+        {"role": "system", "content": SYSTEM_PROMPT +
+         " Select the most relevant follow-up from this catalogue. Return only JSON with question_id. " +
+         json.dumps([{ "question_id": i, "question": q["question"] } for i, q in enumerate(FOLLOW_UPS)])},
+        {"role": "user", "content": _context_blurb(analysis["assessment"]) + "\n" + _transcript(request)},
+    ]
+    async with httpx.AsyncClient(timeout=15.0) as client:
+        response = await client.post("https://api.openai.com/v1/chat/completions",
+            headers={"Authorization": f"Bearer {settings.openai_api_key}"},
+            json={"model": settings.openai_model, "messages": messages,
+                  "response_format": {"type": "json_object"}, "max_tokens": 40})
         response.raise_for_status()
-        payload = response.json()
-    return payload["choices"][0]["message"]["content"].strip()
+        return response.json()["choices"][0]["message"]["content"]
 
 
-async def generate_reply(request, analysis: dict, retrieved: list[dict]) -> tuple[str, str | None, list[str], bool, str]:
-    """Main entry point. Falls back to mock mode on any LLM failure."""
-    settings = get_settings()
+async def generate_reply(request, analysis: dict, retrieved: list[dict]):
     fallback = mock_reply(request, analysis)
-
-    if not settings.ai_live:
+    if analysis["emergency"] or fallback[3] or not get_settings().ai_live:
         return (*fallback, "mock")
-
     try:
-        text = await _call_openai(request, analysis, retrieved)
-        # The model may or may not have asked a question; keep the deterministic
-        # quick-reply options only when its reply also poses one.
-        if "?" in text:
-            _, question, options = pick_mock_question(request)
-            return text, question, options, False, "live"
-        return text, None, [], True, "live"
-    except Exception:  # noqa: BLE001 - never let the LLM break the consultation
+        choice = QuestionChoice.model_validate_json(await _call_openai(request, analysis, retrieved))
+        entry = FOLLOW_UPS[choice.question_id]
+        symptoms = " ".join(analysis["assessment"]["symptoms"]).lower()
+        if entry["trigger"] and not any(t in symptoms for t in entry["trigger"]):
+            raise ValueError("Irrelevant question")
+        if any(entry["question"] in t.content for t in request.conversation if t.role == "assistant"):
+            raise ValueError("Repeated question")
+        return entry["question"], None, entry["options"], False, "live"
+    except Exception:
         return (*fallback, "mock")

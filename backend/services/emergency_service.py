@@ -30,30 +30,29 @@ EMERGENCY_PATTERNS: dict[str, list[str]] = {
         r"short of breath",
         r"severe breathing difficulty",
         r"gasping",
+        r"(not|stopped) breathing",
         r"suffocating",
         r"lips? (are )?(turning )?blue",
         r"blue lips",
     ],
     "neurological": [
-        r"unconscious",
+        r"unconscious(?:ness)?",
         r"passed out",
         r"fainted",
         r"loss of consciousness",
         r"seizure",
         r"convulsion",
-        r"fitting",
-        r"stroke",
-        r"face droop",
+        r"(face|facial)( is)? droop(?:ing)?",
         r"slurred speech",
+        r"slurring (my |their )?words",
         r"cannot speak",
         r"sudden numbness",
         r"sudden weakness on one side",
-        r"one side of (my )?body",
+        r"(weakness|numbness).{0,30}one side of (my )?body",
         r"sudden confusion",
-        r"worst headache of my life",
+        r"(the )?worst headache (of my life|i have had)",
         r"sudden severe headache",
         r"stiff neck.{0,30}(fever|rash|light)",
-        r"light sensitivity",
     ],
     "bleeding": [
         r"severe bleeding",
@@ -68,7 +67,7 @@ EMERGENCY_PATTERNS: dict[str, list[str]] = {
     "anaphylaxis": [
         r"throat (is )?(closing|swelling|swollen)",
         r"swollen throat",
-        r"anaphyla",
+        r"anaphylaxis",
         r"severe allergic reaction",
         r"hives.{0,30}(breath|swell|throat)",
     ],
@@ -103,14 +102,14 @@ EMERGENCY_SYMPTOM_LABELS = {
 SEVERE_LABELS = {"severe", "very severe"}
 
 _COMPILED = [
-    (group, re.compile(pattern, re.IGNORECASE))
+    (group, re.compile(r"\b(?:" + pattern + r")\b", re.IGNORECASE))
     for group, patterns in EMERGENCY_PATTERNS.items()
     for pattern in patterns
 ]
 
 
 def _normalise(text: str) -> str:
-    return re.sub(r"\s+", " ", text.lower()).strip()
+    return re.sub(r"\s+", " ", text.lower().replace("’", "'")).strip()
 
 
 def detect_emergency(
@@ -130,7 +129,9 @@ def detect_emergency(
 
     reasons: list[str] = []
     for group, pattern in _COMPILED:
-        if pattern.search(haystack):
+        matches = [m for m in pattern.finditer(haystack)
+                   if not re.search(r"\b(?:no|not|without|deny|denies|denied)\s+(?:(?:any|current|signs of)\s+)?$", haystack[max(0, m.start()-35):m.start()])]
+        if matches:
             label = pattern.pattern.replace(".{0,20}", "…").replace(".{0,30}", "…")
             reasons.append(f"{group}: {label}")
 

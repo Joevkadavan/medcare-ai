@@ -1,74 +1,48 @@
-"""Hybrid retriever over the local knowledge base.
-
-Scoring blends a hashed-embedding cosine similarity with a lexical tag/title
-overlap score, so short queries like "sore throat" still land on the right
-document. Returns the top-k entries with a relevance score.
-
-This is the seam for real RAG: replace `embed` in embeddings.py with a real
-model and grow `KB` into an ingested corpus. The retriever itself is unchanged.
+"""BM25 retrieval over checked passages; topic gating avoids irrelevant citations.
+Scores are retrieval scores, never confidence in a medical conclusion.
 """
-
-from __future__ import annotations
-
+import math
+from collections import Counter
 from config import get_settings
-from rag.embeddings import cosine, embed, tokenise
+from rag.embeddings import tokenise
 from rag.knowledge_base import all_documents
 
+TOPICS = {
+    "fever": {"fever", "temperature", "chill"},
+    "headache": {"headache", "migraine"},
+    "cough": {"cough", "coughing"},
+    "fatigue": {"fatigue", "tired", "tirednes", "exhausted"},
+    "stroke": {"stroke"},
+    "breathing": {"breathing", "breath", "breathlessnes", "breathless"},
+}
 
-def _lexical_score(query_tokens: set[str], doc: dict) -> float:
-    title_tokens = set(tokenise(doc["title"]))
-    tag_tokens = set(tokenise(" ".join(doc.get("tags", []))))
-    body_tokens = set(tokenise(doc.get("snippet", "")))
-
-    if not query_tokens:
-        return 0.0
-
-    overlap_tags = len(query_tokens & tag_tokens) / len(query_tokens)
-    overlap_title = len(query_tokens & title_tokens) / len(query_tokens)
-    overlap_body = len(query_tokens & body_tokens) / len(query_tokens)
-    return 1.0 * overlap_tags + 0.8 * overlap_title + 0.3 * overlap_body
-
-
-def retrieve(query: str, top_k: int | None = None) -> list[dict]:
-    """Return the best-matching knowledge base entries for a query."""
-    settings = get_settings()
-    if not settings.rag_enabled:
+def retrieve(query, top_k=None):
+    if not get_settings().rag_enabled:
         return []
+    docs = all_documents()
+    tokens = set(tokenise(query))
+    topics = [topic for topic, synonyms in TOPICS.items() if tokens & synonyms]
+    if not topics or not docs:
+        return []
+    tokens.update(topics)
+    texts = [tokenise(d["title"] + " " + " ".join(d["tags"]) + " " + d["snippet"]) for d in docs]
+    average = sum(map(len, texts)) / len(texts)
+    frequencies = Counter(token for text in texts for token in set(text))
+    scored = []
+    for doc, text in zip(docs, texts):
+        if not any(doc["id"].startswith(topic + "-") for topic in topics):
+            continue
+        counts = Counter(text)
+        score = 0.0
+        for token in tokens:
+            tf = counts[token]
+            idf = math.log(1 + (len(docs)-frequencies[token]+0.5)/(frequencies[token]+0.5))
+            score += idf * (tf*2.5)/(tf + 1.5*(0.25 + 0.75*len(text)/average))
+        if score > 0:
+            scored.append({**doc, "score": round(score, 4)})
+    scored.sort(key=lambda d: (-d["score"], d["id"]))
+    return scored[:min(top_k or get_settings().rag_top_k, 4)]
 
-    k = top_k or settings.rag_top_k
-    query = (query or "").strip()
-    query_tokens = set(tokenise(query))
-    query_vector = embed(query)
-
-    scored: list[tuple[float, dict]] = []
-    for doc in all_documents():
-        lexical = _lexical_score(query_tokens, doc)
-        semantic = cosine(query_vector, embed(f"{doc['title']} {' '.join(doc.get('tags', []))} {doc['snippet']}"))
-        score = 0.7 * lexical + 0.3 * semantic
-        if score > 0.05:
-            scored.append((score, doc))
-
-    scored.sort(key=lambda pair: pair[0], reverse=True)
-    return [
-        {
-            "id": doc["id"],
-            "title": doc["title"],
-            "organisation": doc["organisation"],
-            "url": doc["url"],
-            "snippet": doc["snippet"],
-            "score": round(score, 3),
-        }
-        for score, doc in scored[:k]
-    ]
-
-
-def retrieve_for_assessment(assessment: dict, extra_text: str = "", top_k: int | None = None) -> list[dict]:
-    """Build a retrieval query from the structured assessment."""
-    parts = [
-        *[s for s in (assessment.get("symptoms") or [])],
-        *[s for s in (assessment.get("additional_symptoms") or [])],
-        assessment.get("notes") or "",
-        extra_text or "",
-    ]
-    query = " ".join(p for p in parts if p)
-    return retrieve(query, top_k=top_k)
+def retrieve_for_assessment(assessment, extra_text="", top_k=None):
+    return retrieve(" ".join([*(assessment.get("symptoms") or []),
+        *(assessment.get("additional_symptoms") or []), assessment.get("notes", ""), extra_text]), top_k)

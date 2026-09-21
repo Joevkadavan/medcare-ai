@@ -89,7 +89,7 @@ export default function Navbar() {
             aria-expanded={open}
             aria-controls="mobile-menu"
             aria-label={open ? "Close menu" : "Open menu"}
-            className="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-white/15 text-slate-200 transition hover:border-accent/50 hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-accent md:hidden"
+            className="inline-flex h-11 w-11 items-center justify-center rounded-lg border border-white/15 text-slate-200 transition hover:border-accent/50 hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-accent md:hidden"
           >
             {open ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
           </button>
@@ -99,6 +99,7 @@ export default function Navbar() {
       {/* Mobile sheet */}
       <div
         id="mobile-menu"
+        hidden={!open}
         className={[
           "overflow-hidden border-t border-white/10 bg-[#07111f]/95 backdrop-blur-md transition-[max-height] duration-300 md:hidden",
           open ? "max-h-[22rem]" : "max-h-0 border-transparent",
