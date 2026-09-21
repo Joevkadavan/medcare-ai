@@ -1,0 +1,188 @@
+[
+  {
+    "id": "fever-definition",
+    "title": "Fever in adults",
+    "url": "https://www.nhs.uk/symptoms/fever-in-adults/",
+    "section": "What is a high temperature?",
+    "tags": [
+      "fever",
+      "temperature",
+      "chills"
+    ],
+    "snippet": "A temperature of 38°C or higher is generally considered a fever. Feeling hot or shivery can still matter when a thermometer reads below that level.",
+    "organisation": "NHS",
+    "verified_on": "2026-09-21",
+    "content_type": "Reviewed paraphrase"
+  },
+  {
+    "id": "fever-care",
+    "title": "Fever in adults",
+    "url": "https://www.nhs.uk/symptoms/fever-in-adults/",
+    "section": "Treating a high temperature",
+    "tags": [
+      "fever",
+      "temperature",
+      "rest",
+      "fluids",
+      "care"
+    ],
+    "snippet": "For an adult with fever, rest and drink water to reduce dehydration. Seek prompt medical advice if home care is not helping or the fever is worsening.",
+    "organisation": "NHS",
+    "verified_on": "2026-09-21",
+    "content_type": "Reviewed paraphrase"
+  },
+  {
+    "id": "headache-care",
+    "title": "Headaches",
+    "url": "https://www.nhs.uk/symptoms/headaches/",
+    "section": "How you can ease headaches yourself",
+    "tags": [
+      "headache",
+      "headaches",
+      "care",
+      "water",
+      "rest"
+    ],
+    "snippet": "For a headache, drinking water, keeping regular meals and avoiding prolonged screen strain may help. Rest if you also have a cold or flu. Seek medical advice for recurring headaches or pain that worsens or does not improve.",
+    "organisation": "NHS",
+    "verified_on": "2026-09-21",
+    "content_type": "Reviewed paraphrase"
+  },
+  {
+    "id": "headache-urgent",
+    "title": "Headaches",
+    "url": "https://www.nhs.uk/symptoms/headaches/",
+    "section": "When and where to get medical help",
+    "tags": [
+      "headache",
+      "headaches",
+      "urgent",
+      "sudden",
+      "warning"
+    ],
+    "snippet": "A headache that begins suddenly and is extremely painful, or occurs with a seizure, weakness, speech difficulty or confusion, requires emergency assessment. Do not drive yourself to emergency care.",
+    "organisation": "NHS",
+    "verified_on": "2026-09-21",
+    "content_type": "Reviewed paraphrase"
+  },
+  {
+    "id": "cough-duration",
+    "title": "Cough",
+    "url": "https://www.nhs.uk/symptoms/cough/",
+    "section": "Cough; Non-urgent advice",
+    "tags": [
+      "cough",
+      "coughing",
+      "duration",
+      "weeks",
+      "last"
+    ],
+    "snippet": "Coughs commonly resolve within three to four weeks. Arrange a medical review if a cough continues beyond three weeks, particularly with unexplained weight loss or a weakened immune system.",
+    "organisation": "NHS",
+    "verified_on": "2026-09-21",
+    "content_type": "Reviewed paraphrase"
+  },
+  {
+    "id": "cough-care",
+    "title": "Cough",
+    "url": "https://www.nhs.uk/symptoms/cough/",
+    "section": "How you can treat a cough yourself; Urgent advice",
+    "tags": [
+      "cough",
+      "coughing",
+      "care",
+      "rest",
+      "fluids"
+    ],
+    "snippet": "Rest and fluids can help when you have a cough. Obtain urgent medical advice if it becomes very bad or rapidly worse, or you feel very unwell. Chest pain, breathing problems or coughing blood also need urgent attention.",
+    "organisation": "NHS",
+    "verified_on": "2026-09-21",
+    "content_type": "Reviewed paraphrase"
+  },
+  {
+    "id": "fatigue-sleep",
+    "title": "Tiredness and fatigue",
+    "url": "https://www.nhs.uk/symptoms/tiredness-and-fatigue/",
+    "section": "Things you can do to help with tiredness or fatigue",
+    "tags": [
+      "fatigue",
+      "tired",
+      "tiredness",
+      "sleep",
+      "care"
+    ],
+    "snippet": "Regular sleep times, a relaxing sleeping environment, a balanced diet and regular exercise may help tiredness. Avoid caffeine close to bedtime and screens in the hour before sleep.",
+    "organisation": "NHS",
+    "verified_on": "2026-09-21",
+    "content_type": "Reviewed paraphrase"
+  },
+  {
+    "id": "fatigue-care",
+    "title": "Tiredness and fatigue",
+    "url": "https://www.nhs.uk/symptoms/tiredness-and-fatigue/",
+    "section": "Non-urgent advice",
+    "tags": [
+      "fatigue",
+      "tired",
+      "tiredness",
+      "weeks",
+      "doctor"
+    ],
+    "snippet": "Contact a healthcare professional if unexplained tiredness lasts several weeks, interferes with daily life, or comes with other symptoms such as weight loss or mood changes. Do not try to diagnose the cause yourself.",
+    "organisation": "NHS",
+    "verified_on": "2026-09-21",
+    "content_type": "Reviewed paraphrase"
+  },
+  {
+    "id": "stroke-warning",
+    "title": "Stroke symptoms",
+    "url": "https://www.nhs.uk/conditions/stroke/symptoms/",
+    "section": "Check for signs of a stroke; Immediate action",
+    "tags": [
+      "stroke",
+      "face",
+      "speech",
+      "arm",
+      "weakness",
+      "warning"
+    ],
+    "snippet": "Sudden facial weakness, weakness in an arm or speech changes can be stroke warning signs. Contact local emergency services immediately if these occur, even if the symptoms have stopped.",
+    "organisation": "NHS",
+    "verified_on": "2026-09-21",
+    "content_type": "Reviewed paraphrase"
+  },
+  {
+    "id": "breathing-warning",
+    "title": "Shortness of breath",
+    "url": "https://www.nhs.uk/symptoms/shortness-of-breath/",
+    "section": "Immediate action required",
+    "tags": [
+      "breathing",
+      "breathlessness",
+      "breath",
+      "gasping",
+      "warning"
+    ],
+    "snippet": "Severe breathing difficulty, a tight or heavy chest, blue or very pale lips or skin, or sudden confusion can require emergency care. Contact local emergency services and do not drive yourself.",
+    "organisation": "NHS",
+    "verified_on": "2026-09-21",
+    "content_type": "Reviewed paraphrase"
+  },
+  {
+    "id": "breathing-review",
+    "title": "Shortness of breath",
+    "url": "https://www.nhs.uk/symptoms/shortness-of-breath/",
+    "section": "Non-urgent advice",
+    "tags": [
+      "breathing",
+      "breathlessness",
+      "breath",
+      "exercise",
+      "lying"
+    ],
+    "snippet": "Arrange medical review for breathlessness that worsens during normal activities or when lying down. Shortness of breath has many possible causes; a healthcare professional should assess it rather than relying on self-diagnosis.",
+    "organisation": "NHS",
+    "verified_on": "2026-09-21",
+    "content_type": "Reviewed paraphrase"
+  }
+]

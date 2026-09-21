@@ -9,6 +9,7 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
     frontend_url: str = "http://localhost:3000"
+    frontend_origins: str = ""
 
     openai_api_key: str = ""
     openai_model: str = "gpt-4o-mini"
@@ -22,8 +23,8 @@ class Settings(BaseSettings):
         """Parse FRONTEND_URL into a list of origins, in addition to local dev."""
         extra = [
             origin.strip().rstrip("/")
-            for origin in self.frontend_url.split(",")
-            if origin.strip()
+            for origin in (self.frontend_url + "," + self.frontend_origins).split(",")
+            if origin.strip() and origin.strip() != "*"
         ]
         dev = [
             "http://localhost:3000",

@@ -9,7 +9,7 @@ module.exports = {
     extend: {
       colors: {
         // MedCare AI identity
-        base: "#07111f",
+        canvas: "#07111f",
         surface: "#0d1b2a",
         accent: {
           DEFAULT: "#22d3ee",
@@ -18,7 +18,7 @@ module.exports = {
         },
       },
       fontFamily: {
-        sans: ["var(--font-sans)", "system-ui", "sans-serif"],
+        sans: ["system-ui", "Segoe UI", "sans-serif"],
       },
       boxShadow: {
         glow: "0 0 0 1px rgba(34,211,238,0.35), 0 0 24px -4px rgba(34,211,238,0.35)",

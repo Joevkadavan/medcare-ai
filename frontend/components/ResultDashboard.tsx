@@ -17,6 +17,7 @@ import EmergencyAlert from "./EmergencyAlert";
 
 interface ResultDashboardProps {
   result: ConsultationResult;
+  pending?: boolean;
   onContinueChat: () => void;
   onRestart: () => void;
 }
@@ -35,6 +36,7 @@ function Field({ icon: Icon, label, value }: { icon: typeof Gauge; label: string
 
 export default function ResultDashboard({
   result,
+  pending = false,
   onContinueChat,
   onRestart,
 }: ResultDashboardProps) {
@@ -99,9 +101,12 @@ export default function ResultDashboard({
         </div>
       </div>
 
+      {result.follow_up_answers.length > 0 && <div className="card-surface p-4 sm:p-6">
+        <Field icon={ClipboardList} label="Follow-up answers" value={result.follow_up_answers.join(" · ")} />
+      </div>}
       {/* AI guidance */}
       <div className="card-surface p-4 sm:p-6">
-        <div className="flex items-center justify-between gap-3">
+        <div className="flex flex-wrap items-center justify-between gap-3">
           <h3 className="text-base font-semibold text-white">Guidance</h3>
           <span className="rounded-md border border-white/10 bg-white/[0.03] px-2 py-1 text-[10px] font-medium uppercase tracking-wider text-slate-400">
             {result.ai_mode === "live" ? "Live AI" : "Fallback mode"} · {result.rag_status}
@@ -170,16 +175,16 @@ export default function ResultDashboard({
             Retrieved from the MedCare AI knowledge base to ground this guidance.
           </p>
           <div className="mt-4 space-y-3">
-            {result.sources.map((source) => (
+            {result.sources.map((source, index) => (
               <a
-                key={source.url + source.title}
+                key={source.id}
                 href={source.url}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="block rounded-xl border border-white/10 bg-white/[0.02] p-4 transition hover:border-accent/40 hover:bg-white/[0.04] focus:outline-none focus-visible:ring-2 focus-visible:ring-accent"
               >
                 <div className="flex items-start justify-between gap-3">
-                  <p className="text-sm font-semibold text-white">{source.title}</p>
+                  <p className="text-sm font-semibold text-white">[{index + 1}] {source.title}</p>
                   <ExternalLink className="mt-0.5 h-3.5 w-3.5 shrink-0 text-slate-500" />
                 </div>
                 <p className="mt-1 text-xs text-slate-500">{source.organisation}</p>
@@ -194,13 +199,13 @@ export default function ResultDashboard({
 
       {/* Actions */}
       <div className="flex flex-col gap-2.5 sm:flex-row">
-        <button type="button" onClick={onContinueChat} className="btn-primary w-full sm:flex-1">
+        <button type="button" onClick={onContinueChat} disabled={pending} className="btn-primary w-full sm:flex-1">
           Continue chat
           <ArrowRight className="h-4 w-4" />
         </button>
-        <button type="button" onClick={onRestart} className="btn-ghost w-full sm:w-auto">
+        <button type="button" onClick={onRestart} disabled={pending} className="btn-ghost w-full sm:w-auto">
           <RotateCcw className="h-4 w-4" />
-          Start new consultation
+          {pending ? "Clearing consultation…" : "Start new consultation"}
         </button>
       </div>
     </div>

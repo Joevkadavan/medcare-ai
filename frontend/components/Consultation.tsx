@@ -74,30 +74,18 @@ export default function Consultation() {
     };
   }, [answers]);
 
-  /** Chat history in the shape the backend expects. */
-  const conversation = useMemo<ConversationTurn[]>(() => {
-    const turns: ConversationTurn[] = [
-      { role: "assistant", content: "What are you experiencing?" },
-      { role: "user", content: assessment.symptoms.join(", ") || "Not specified" },
-    ];
-    if (assessment.duration) {
-      turns.push({ role: "user", content: `Duration: ${assessment.duration}` });
-    }
-    if (assessment.severity) {
-      turns.push({ role: "user", content: `Severity: ${assessment.severity}` });
-    }
-    for (const entry of messages.filter((item) => item.role === "user")) {
-      turns.push({ role: "user", content: entry.content });
-    }
-    for (const entry of messages.filter((item) => item.role === "assistant")) {
-      turns.push({ role: "assistant", content: entry.content });
-    }
-    return turns;
-  }, [assessment, messages]);
+  const busy = useRef(false);
+  const summaryBusy = useRef(false);
+  const [failedText, setFailedText] = useState<string | null>(null);
+  const [errorAction, setErrorAction] = useState<"send" | "summary" | "reset" | null>(null);
+  const [continued, setContinued] = useState(false);
+  const conversation: ConversationTurn[] = messages.map(({ role, content }) => ({ role, content }));
 
   /** Open the consultation with the first assistant turn. */
   const beginChat = useCallback(
     async (currentAssessment: Assessment) => {
+      if (busy.current) return;
+      busy.current = true;
       setPhase("chat");
       setPending(true);
       setError(null);
@@ -116,6 +104,7 @@ export default function Consultation() {
         setPhase("quiz");
       } finally {
         setPending(false);
+        busy.current = false;
       }
     },
     [],
@@ -144,78 +133,85 @@ export default function Consultation() {
     });
   };
 
-  const send = async (text: string) => {
-    const trimmed = text.trim();
-    if (!trimmed || pending) return;
-
-    const outgoing = message("user", trimmed);
-    setMessages((current) => [...current, outgoing]);
-    setPending(true);
-    setError(null);
-
-    try {
-      const response = await chatRequest(
-        trimmed,
-        conversation,
-        assessment,
-        sessionId.current,
-      );
-      setAiMode(response.ai_mode);
-      setMessages((current) => [...current, message("assistant", response.message)]);
-      setOptions(response.options);
-      if (response.emergency) setEmergencyInChat(true);
-    } catch (caught) {
-      setError(
-        caught instanceof ApiError
-          ? caught.message
-          : "MedCare AI could not respond just now. Please try again.",
-      );
-      setOptions([]);
-    } finally {
-      setPending(false);
-    }
-  };
-
-  /** Fetch the full result dashboard and switch to it. */
-  const finish = async () => {
+  const finish = async (history: ConversationTurn[] = conversation) => {
+    if (summaryBusy.current) return;
+    summaryBusy.current = true;
     setChecking(true);
     setError(null);
+    setErrorAction(null);
     try {
-      const response = await consultationRequest(
-        assessment,
-        conversation,
-        sessionId.current,
-      );
+      const response = await consultationRequest(assessment, history, sessionId.current);
       setResult(response);
-      setAiMode(response.ai_mode);
       setPhase("result");
     } catch (caught) {
-      setError(
-        caught instanceof ApiError
-          ? caught.message
-          : "MedCare AI could not put your summary together. Please try again.",
-      );
+      setError(caught instanceof ApiError ? caught.message : "Unable to prepare the summary. Please retry.");
+      setErrorAction("summary");
+    } finally { setChecking(false); summaryBusy.current = false; }
+  };
+
+  const send = async (text: string) => {
+    const trimmed = text.trim();
+    if (!trimmed || busy.current || checking || emergencyInChat) return;
+    if (trimmed.length > 2000 || messages.length >= 38) {
+      setError("This consultation has reached its limit. View your summary or start a new consultation.");
+      return;
+    }
+    busy.current = true;
+    const outgoing = message("user", trimmed);
+    setMessages([...messages, outgoing]);
+    setPending(true);
+    setError(null);
+    setErrorAction(null);
+    setFailedText(null);
+    try {
+      const response = await chatRequest(trimmed, conversation, assessment, sessionId.current, continued ? "question" : "consultation");
+      const nextMessages = [...messages, outgoing, { ...message("assistant", response.message), sources: response.sources }];
+      setMessages(nextMessages);
+      setAiMode(response.ai_mode);
+      setOptions(response.options);
+      setEmergencyInChat(response.emergency);
+      if (response.complete && !response.emergency && !continued) {
+        await finish(nextMessages.map(({ role, content }) => ({ role, content })));
+      }
+    } catch (caught) {
+      setMessages(messages); // Retry sends the failed turn exactly once.
+      setFailedText(trimmed);
+      setErrorAction("send");
+      setError(caught instanceof ApiError ? caught.message : "Unable to send your response. Please retry.");
     } finally {
-      setChecking(false);
+      setPending(false);
+      busy.current = false;
     }
   };
 
   const restart = async () => {
-    const previous = sessionId.current;
-    sessionId.current = newSessionId();
-    setAnswers(EMPTY_ANSWERS);
-    setMessages([]);
-    setOptions([]);
-    setResult(null);
+    if (busy.current || checking) return;
+    busy.current = true;
+    setChecking(true);
     setError(null);
-    setEmergencyInChat(false);
-    setPhase("quiz");
     try {
-      await resetRequest(previous);
-    } catch {
-      // A failed reset is not worth interrupting the user for — the new session
-      // id already isolates them from the old one.
-    }
+      await resetRequest(sessionId.current);
+      sessionId.current = newSessionId();
+      setAnswers(EMPTY_ANSWERS);
+      setMessages([]);
+      setOptions([]);
+      setResult(null);
+      setEmergencyInChat(false);
+      setAiMode(undefined);
+      setFailedText(null);
+      setErrorAction(null);
+      setContinued(false);
+      setPhase("quiz");
+    } catch (caught) {
+      setError(caught instanceof ApiError ? caught.message : "Unable to clear the session. Please retry.");
+      setErrorAction("reset");
+    } finally { busy.current = false; setChecking(false); }
+  };
+
+  const retry = () => {
+    if (errorAction === "reset") void restart();
+    else if (errorAction === "summary") void finish();
+    else if (failedText) void send(failedText);
   };
 
   return (
@@ -226,7 +222,7 @@ export default function Consultation() {
           <h2 className="section-title mt-2">Your health assessment</h2>
           <p className="mt-4 text-sm leading-relaxed text-slate-400 sm:text-base">
             Answer a few questions and MedCare AI will ask anything else it needs to know.
-            This is general health guidance, not a diagnosis.
+            MedCare AI provides informational guidance and does not replace professional medical advice.
           </p>
         </div>
 
@@ -261,6 +257,7 @@ export default function Consultation() {
                 <Chatbot
                   messages={messages}
                   pending={pending}
+                  inputDisabled={emergencyInChat || checking || messages.length >= 38 || !!failedText}
                   options={options}
                   aiMode={aiMode}
                   onSend={(text) => void send(text)}
@@ -269,7 +266,8 @@ export default function Consultation() {
                       <ErrorState
                         message={error}
                         compact
-                        onRetry={() => void send(messages.at(-1)?.content || "")}
+                        onRetry={retry}
+                        retrying={pending || checking}
                       />
                     ) : null
                   }
@@ -329,22 +327,24 @@ export default function Consultation() {
                 {checking && (
                   <LoadingState
                     label="Analysing your symptoms…"
-                    hint="Grading your assessment and retrieving relevant guidance."
+                    hint="Preparing your informational guidance."
                     compact
                   />
                 )}
 
-                {error && !pending && (
-                  <ErrorState message={error} compact onRetry={() => void finish()} />
+                {error && !pending && errorAction === "summary" && (
+                  <ErrorState message={error} compact onRetry={retry} retrying={pending || checking} />
                 )}
               </aside>
             </div>
           )}
 
+          {phase === "result" && error && <ErrorState message={error} onRetry={retry} retrying={checking} />}
           {phase === "result" && result && (
             <ResultDashboard
               result={result}
-              onContinueChat={() => setPhase("chat")}
+              pending={checking}
+              onContinueChat={() => { setContinued(true); setPhase("chat"); }}
               onRestart={() => void restart()}
             />
           )}

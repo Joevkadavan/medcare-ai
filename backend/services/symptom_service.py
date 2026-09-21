@@ -146,7 +146,10 @@ def build_summary(assessment: dict) -> str:
 
 
 def next_steps_for(risk: str) -> list[str]:
-    if risk in {"HIGH", "EMERGENCY"}:
+    if risk == "EMERGENCY":
+        return ["Contact local emergency services now or seek emergency in-person care.",
+                "Do not delay care to continue this consultation.", "Do not drive yourself; ask someone to help."]
+    if risk == "HIGH":
         return SERIOUS_NEXT_STEPS
     return GENERAL_NEXT_STEPS
 

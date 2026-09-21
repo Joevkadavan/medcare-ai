@@ -131,3 +131,8 @@ body {
   scrollbar-width: thin;
   scrollbar-color: #17334a transparent;
 }
+
+:focus-visible { outline: 2px solid #22d3ee; outline-offset: 3px; }
+button, a { touch-action: manipulation; }
+.text-slate-500, .text-slate-600 { color: #94a3b8; }
+@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }

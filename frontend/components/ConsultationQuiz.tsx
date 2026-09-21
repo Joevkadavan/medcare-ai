@@ -9,6 +9,7 @@ import {
   SYMPTOM_OPTIONS,
 } from "@/lib/constants";
 import SelectableCard from "./SelectableCard";
+import EmergencyAlert from "./EmergencyAlert";
 
 export interface QuizAnswers {
   symptoms: string[];
@@ -71,15 +72,15 @@ export default function ConsultationQuiz({
   const stepValid = (() => {
     switch (step) {
       case 0:
-        return answers.symptoms.length > 0;
+        return answers.symptoms.length > 0 && (!answers.symptoms.includes("Other") || !!answers.otherSymptom.trim());
       case 1:
         return answers.duration !== "";
       case 2:
         return answers.severity !== "";
       case 3:
-        return true; // additional symptoms are optional
+        return !answers.additional.includes("Other") || !!answers.otherAdditional.trim();
       case 4:
-        return true; // free-text is optional
+        return answers.notes.length <= 2000;
       default:
         return false;
     }
@@ -97,6 +98,14 @@ export default function ConsultationQuiz({
   const back = () => setStep((value) => Math.max(0, value - 1));
 
   const otherSelected = answers.symptoms.includes("Other");
+  // Immediate caution for explicit red-flag selections, without waiting for a network call.
+  // The backend independently screens all submitted assessments and free-text turns.
+  if (answers.symptoms.some((item) => ["Chest pain", "Breathing difficulty"].includes(item))) {
+    return <div className="space-y-4"><EmergencyAlert />
+      <p className="text-sm text-slate-300">The assessment has stopped so it does not delay urgent care.</p>
+      <button type="button" className="btn-ghost" onClick={() => { onChange(EMPTY_ANSWERS); setStep(0); }}>Start new consultation</button>
+    </div>;
+  }
 
   return (
     <div className="card-surface overflow-hidden">
@@ -164,6 +173,7 @@ export default function ConsultationQuiz({
                 {otherSelected && (
                   <input
                     type="text"
+                    maxLength={120}
                     value={answers.otherSymptom}
                     onChange={(event) => set("otherSymptom", event.target.value)}
                     placeholder="Describe your symptom..."
@@ -248,6 +258,7 @@ export default function ConsultationQuiz({
               {answers.additional.includes("Other") && (
                 <input
                   type="text"
+                    maxLength={120}
                   value={answers.otherAdditional}
                   onChange={(event) => set("otherAdditional", event.target.value)}
                   placeholder="Describe the other symptom..."
@@ -271,10 +282,13 @@ export default function ConsultationQuiz({
                 value={answers.notes}
                 onChange={(event) => set("notes", event.target.value)}
                 rows={5}
+                maxLength={2000}
+                aria-describedby="notes-count"
                 placeholder="Describe anything else you're experiencing..."
                 aria-label="Additional details"
                 className="chat-scroll mt-5 w-full resize-y rounded-xl border border-white/12 bg-[#07111f] px-3.5 py-3 text-base leading-relaxed text-slate-100 placeholder:text-slate-500 transition focus:border-accent/60 focus:outline-none focus-visible:ring-1 focus-visible:ring-accent sm:text-sm"
               />
+              <p id="notes-count" className="mt-2 text-xs text-slate-400">{answers.notes.length}/2000 characters. Optional; avoid identifying details.</p>
             </>
           )}
         </div>
@@ -313,11 +327,12 @@ export default function ConsultationQuiz({
           </button>
         </div>
 
-        {!stepValid && (step === 0 || step === 1 || step === 2) && (
+        {!stepValid && (
           <p className="mt-2.5 text-xs text-slate-500">
-            {step === 0 && "Select at least one symptom to continue."}
+            {step === 0 && "Select at least one symptom and describe Other if selected."}
             {step === 1 && "Choose how long your symptoms have lasted."}
             {step === 2 && "Choose how severe your symptoms feel."}
+            {step === 3 && "Describe the other symptom to continue."}
           </p>
         )}
       </div>
